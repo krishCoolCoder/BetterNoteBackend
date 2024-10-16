@@ -118,7 +118,8 @@ router.put("/", async (req,res)=>{
             _id : mongoose.Types.ObjectId.createFromHexString(req.body?.userId)
         },
         {
-            ...req.body
+            ...req.body, 
+            updatedAt : new Date()
         },
         {new : true}
     )

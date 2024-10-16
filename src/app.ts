@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 import {connectDB}from "./mongodbConnection";
 app.use(bodyParser.json({ limit: '1mb' }));
 
-app.use("/", require("./notes/notesController"))
+app.use("/note", require("./notes/notesController"))
 app.use("/user", require("./users/UserController"))
 
 app.listen(8080, ()=> {

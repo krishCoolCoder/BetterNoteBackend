@@ -1,7 +1,10 @@
+import mongoose from "mongoose";
 import { base64Encode, decryptData } from "../utility/utility";
 
 let router = require("express").Router();
 const zlib = require('zlib');
+// import {NoteSchema} from "../models/notes"
+let Note = require("../models/notes");
 
 router.get("/generateNotes", (req,res)=>{
     console.log("The payload is this : ", req.body)
@@ -35,41 +38,121 @@ router.get("/generateNotes", (req,res)=>{
 })
 
 // get the list of the notes.
-router.get("/notes", (req, res) => {
-    res.status(200).send(
-        {
-            message: "It is started"
-        }
-    );
+router.get("/all", async (req, res) => {
+    let allNotes = await Note.find({})
+    if (allNotes.length != 0) {
+        res.status(200).send(
+            {
+                data : allNotes,
+                message: "Successfully fetched the notes list"
+            }
+        );
+    } else {
+        return res.status(500).send(
+            {
+                message : "Something went wrong"
+            }
+        )
+    }
 });
 
 // Save the notes.
-router.post("/notes", async (req,res)=>{
-    console.log("The payload is this : ", req.body)
-    let decodedData : string = await decryptData(JSON.stringify(req.body.data))
-    console.log("The decoded data is this : ", decodedData)
-    res.status(200).send(
+router.post("/", async (req,res)=>{
+    let decodedData : any = decryptData(req.body?.data);
+    let notesData = await new Note(
         {
-            data: JSON.parse(decodedData),
-            message: "Saved notes successfully"
+            title : decodedData?.title,
+            body : decodedData?.body
         }
-    )
+    ).save();
+    console.log("The notes is this : ", notesData)
+    if (notesData){
+        return res.status(200).send(
+            {
+                data: notesData,
+                message: "Saved notes successfully"
+            }
+        )
+    } else {
+        return res.status(500).sent(
+            {
+                message : "Something went wrong."
+            }
+        )
+    }
 })
 
-router.put("/notes", (req,res)=>{
-    res.send(200).send(
+router.put("/",async (req,res)=>{
+    // console.log("The payload is this : ", req.body)
+    // let decodedData : any = await decryptData(JSON.stringify(req.body.data))
+    // console.log("The decoded data is this : ", decodedData, " and the type of is this : ", typeof decodedData);
+    // decodedData = JSON.parse(decodedData);
+    // console.log("The decoded data is this : ", decodedData.title," and the body is this : ", decodedData.body, " and the type of is this : ", typeof decodedData);
+    req.body = await decryptData(req.body.data);
+    if ( !req.body?.noteId ) {
+        return res.status(500).send(
+            {
+                message : "noteId is not sent."
+            }
+        )
+    }
+    let updatedNote = await Note.findOneAndUpdate(
         {
-            message : "Updated notes successfully"
+            _id : mongoose.Types.ObjectId.createFromHexString(req.body?.noteId)
+        },
+        {
+            ...req.body
+        }, 
+        {
+            new :true
         }
-    )
+    );
+    if (updatedNote) {
+        return res.status(200).send(
+            {
+                data : updatedNote,
+                message : "Updated notes successfully"
+            }
+        )
+    } else {
+        return res.status(500).send(
+            {
+                message : "Something went wrong"
+            }
+        )
+    }
 })
 
-router.delete("/delete", (req,res)=>{
-    res.send(200).send(
+router.delete("/", async (req,res)=>{
+    let decryptedData : any= await decryptData(req.body?.data);
+    let existingNote = await Note.findOne({_id : mongoose.Types.ObjectId.createFromHexString(decryptedData?.noteId)});
+    console.log("The existingNote is this : ", decryptedData, " and the typeof is : ", typeof decryptedData)
+    if (!existingNote) {
+        return res.status(500).send(
+            {
+                message : "Note does not exist"
+            }
+        )
+    }
+    let deletedData = await Note.findOneAndDelete(
         {
-            message : "Deleted notes successfully"
+            _id : mongoose.Types.ObjectId.createFromHexString(decryptedData?.noteId)
         }
     )
+    if (deletedData) {
+        return res.status(200).send(
+            {
+                data : deletedData,
+                message : "Deleted notes successfully"
+            }
+        )
+    } else {
+        return res.status(200).send(
+            {
+                message : "Something went wrong"
+            }
+        )
+    }
 })
 
 module.exports = router;

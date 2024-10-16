@@ -24,7 +24,7 @@ export function decryptData(data: string) : Promise<string> {
     // });
 
     return new Promise((resolve, reject) => {    
-        const decodedData = base64Decode(data);
+        const decodedData = base64Decode(String(data));
         zlib.gunzip(decodedData, 
             (err, compressedData) => {      
                 if (err) {        
@@ -35,7 +35,7 @@ export function decryptData(data: string) : Promise<string> {
                 // Step 2: Base64 encode the compressed data      
                 // const base64Compressed = base64Encode(compressedData);      
                 console.log("The base64Compressed data is this: ", compressedData.toString());      
-                resolve(compressedData.toString());    
+                resolve(JSON.parse(compressedData));    
             });  
         });
 }

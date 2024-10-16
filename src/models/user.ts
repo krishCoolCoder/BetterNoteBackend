@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 // Define a schema for your collection
 const UserSchema = new mongoose.Schema({
