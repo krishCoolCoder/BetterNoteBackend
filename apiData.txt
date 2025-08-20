@@ -1,0 +1,440 @@
+# BetterNote Backend API Documentation
+
+## Server Information
+- **Base URL**: http://localhost:3001
+- **Environment**: Development
+- **Database**: MongoDB Atlas (primecontent)
+- **Authentication**: JWT Token (24h expiry)
+
+---
+
+## 🔐 USER MANAGEMENT APIs
+
+### Base URL: `/api/users`
+
+### 1. CREATE USER
+**Purpose**: Register a new user with encrypted password
+**Method**: POST
+**Endpoint**: `/api/users`
+**Features**: 
+- Automatic password hashing with bcrypt
+- Email and username uniqueness validation
+- Auto-generated timestamps
+
+```bash
+curl -X POST http://localhost:3001/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userName": "saikrishna.pro",
+    "emailId": "me@saikrishna.io",
+    "password": "test123",
+    "createdBy": "admin"
+  }'
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "User created successfully",
+  "data": {
+    "_id": "68a6255cc99d074b5c36573d",
+    "userName": "saikrishna.pro",
+    "emailId": "me@saikrishna.io",
+    "createdBy": "admin",
+    "createdAt": "2025-08-20T19:43:24.198Z",
+    "updatedBy": "",
+    "updatedAt": "2025-08-20T19:43:24.553Z"
+  }
+}
+```
+
+### 2. USER LOGIN
+**Purpose**: Authenticate user and generate JWT token
+**Method**: POST
+**Endpoint**: `/api/users/login`
+**Features**: 
+- Password verification with bcrypt
+- JWT token generation with 24h expiry
+- Returns user data + token
+
+```bash
+curl -X POST http://localhost:3001/api/users/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "emailId": "me@saikrishna.io",
+    "password": "test123"
+  }'
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "_id": "68a6255cc99d074b5c36573d",
+      "userName": "saikrishna.pro",
+      "emailId": "me@saikrishna.io",
+      "createdBy": "admin",
+      "createdAt": "2025-08-20T19:43:24.198Z",
+      "updatedAt": "2025-08-20T19:43:24.553Z"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresIn": "24h"
+  }
+}
+```
+
+### 3. GET ALL USERS
+**Purpose**: Retrieve all users (admin function)
+**Method**: GET
+**Endpoint**: `/api/users`
+**Features**: Password fields excluded from response
+
+```bash
+curl -X GET http://localhost:3001/api/users
+```
+
+### 4. GET USER BY ID
+**Purpose**: Retrieve specific user by MongoDB ObjectId
+**Method**: GET
+**Endpoint**: `/api/users/:id`
+
+```bash
+curl -X GET http://localhost:3001/api/users/68a6255cc99d074b5c36573d
+```
+
+### 5. GET USER BY EMAIL
+**Purpose**: Find user by email address
+**Method**: GET
+**Endpoint**: `/api/users/email/:email`
+
+```bash
+curl -X GET http://localhost:3001/api/users/email/me@saikrishna.io
+```
+
+### 6. GET USER BY USERNAME
+**Purpose**: Find user by username
+**Method**: GET
+**Endpoint**: `/api/users/username/:username`
+
+```bash
+curl -X GET http://localhost:3001/api/users/username/saikrishna.pro
+```
+
+### 7. UPDATE USER
+**Purpose**: Update user information (partial updates supported)
+**Method**: PUT
+**Endpoint**: `/api/users/:id`
+**Features**: 
+- Partial updates (only provided fields updated)
+- Password re-hashing if password updated
+- Auto-update of updatedAt timestamp
+
+```bash
+curl -X PUT http://localhost:3001/api/users/68a6255cc99d074b5c36573d \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userName": "saikrishna.updated",
+    "emailId": "updated@saikrishna.io",
+    "password": "newpassword123",
+    "updatedBy": "admin"
+  }'
+```
+
+### 8. DELETE USER
+**Purpose**: Permanently delete user account
+**Method**: DELETE
+**Endpoint**: `/api/users/:id`
+
+```bash
+curl -X DELETE http://localhost:3001/api/users/68a6255cc99d074b5c36573d
+```
+
+---
+
+## 📝 NOTES MANAGEMENT APIs
+
+### Base URL: `/api/notes`
+
+### 1. CREATE NOTE
+**Purpose**: Create a new note with sharing capabilities
+**Method**: POST
+**Endpoint**: `/api/notes`
+**Features**: 
+- ObjectId references to users
+- Email sharing system
+- Auto-generated timestamps
+
+```bash
+curl -X POST http://localhost:3001/api/notes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "My First Note",
+    "note": "This is the content of my first note",
+    "sharedTo": ["friend@example.com", "colleague@example.com"],
+    "createdBy": "68a6255cc99d074b5c36573d"
+  }'
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Note created successfully",
+  "data": {
+    "_id": "68a6255cc99d074b5c36573e",
+    "title": "My First Note",
+    "note": "This is the content of my first note",
+    "sharedTo": ["friend@example.com", "colleague@example.com"],
+    "createdBy": {
+      "_id": "68a6255cc99d074b5c36573d",
+      "userName": "saikrishna.pro",
+      "emailId": "me@saikrishna.io"
+    },
+    "updatedBy": {
+      "_id": "68a6255cc99d074b5c36573d",
+      "userName": "saikrishna.pro",
+      "emailId": "me@saikrishna.io"
+    },
+    "createdAt": "2025-08-20T20:15:30.123Z",
+    "updatedAt": "2025-08-20T20:15:30.123Z"
+  }
+}
+```
+
+### 2. GET NOTES FOR USER
+**Purpose**: Get all notes created by user OR shared with user
+**Method**: GET
+**Endpoint**: `/api/notes/user/:userId`
+**Features**: 
+- Returns user's own notes + notes shared with them
+- Populated user references
+- Sorted by updatedAt (newest first)
+
+```bash
+curl -X GET http://localhost:3001/api/notes/user/68a6255cc99d074b5c36573d
+```
+
+### 3. GET ALL NOTES (ADMIN)
+**Purpose**: Retrieve all notes in the system (admin function)
+**Method**: GET
+**Endpoint**: `/api/notes/all`
+
+```bash
+curl -X GET http://localhost:3001/api/notes/all
+```
+
+### 4. GET NOTE BY ID
+**Purpose**: Retrieve specific note with access control
+**Method**: GET
+**Endpoint**: `/api/notes/:id`
+**Features**: 
+- Access control (only creator or shared users can view)
+- Optional userId parameter for access verification
+
+```bash
+curl -X GET "http://localhost:3001/api/notes/68a6255cc99d074b5c36573e?userId=68a6255cc99d074b5c36573d"
+```
+
+### 5. UPDATE NOTE
+**Purpose**: Update note content (only creator can update)
+**Method**: PUT
+**Endpoint**: `/api/notes/:id`
+**Features**: 
+- Only note creator can update
+- Partial updates supported
+- Auto-update of updatedAt timestamp
+
+```bash
+curl -X PUT http://localhost:3001/api/notes/68a6255cc99d074b5c36573e \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated Note Title",
+    "note": "Updated note content",
+    "sharedTo": ["newuser@example.com"],
+    "updatedBy": "68a6255cc99d074b5c36573d"
+  }'
+```
+
+### 6. DELETE NOTE
+**Purpose**: Permanently delete note (only creator can delete)
+**Method**: DELETE
+**Endpoint**: `/api/notes/:id`
+
+```bash
+curl -X DELETE http://localhost:3001/api/notes/68a6255cc99d074b5c36573e \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "68a6255cc99d074b5c36573d"
+  }'
+```
+
+### 7. SEARCH/FILTER NOTES
+**Purpose**: Search notes by title and content with pagination
+**Method**: GET
+**Endpoint**: `/api/notes/search`
+**Features**: 
+- Full-text search in title and note content
+- Case-insensitive search
+- Pagination support
+- User-specific filtering
+- Access control (user sees only accessible notes)
+
+```bash
+# Search all accessible notes with query
+curl -X GET "http://localhost:3001/api/notes/search?query=javascript&page=1&limit=10"
+
+# Search user's specific notes
+curl -X GET "http://localhost:3001/api/notes/search?query=tutorial&userId=68a6255cc99d074b5c36573d&page=1&limit=5"
+
+# Get all notes for a user (no search query)
+curl -X GET "http://localhost:3001/api/notes/search?userId=68a6255cc99d074b5c36573d"
+
+# Search without user filter
+curl -X GET "http://localhost:3001/api/notes/search?query=nodejs"
+```
+
+**Search Response**:
+```json
+{
+  "success": true,
+  "message": "Notes search completed successfully",
+  "data": [...notes array...],
+  "pagination": {
+    "total": 25,
+    "page": 1,
+    "totalPages": 3,
+    "limit": 10
+  }
+}
+```
+
+### 8. SHARE NOTE
+**Purpose**: Share note with additional users via email
+**Method**: POST
+**Endpoint**: `/api/notes/:id/share`
+**Features**: 
+- Only creator can share notes
+- Add emails to existing sharedTo array
+- Duplicate emails automatically handled
+
+```bash
+curl -X POST http://localhost:3001/api/notes/68a6255cc99d074b5c36573e/share \
+  -H "Content-Type: application/json" \
+  -d '{
+    "emails": ["user1@example.com", "user2@example.com"],
+    "userId": "68a6255cc99d074b5c36573d"
+  }'
+```
+
+### 9. UNSHARE NOTE
+**Purpose**: Remove users from note sharing list
+**Method**: POST
+**Endpoint**: `/api/notes/:id/unshare`
+**Features**: 
+- Only creator can unshare notes
+- Remove specific emails from sharedTo array
+
+```bash
+curl -X POST http://localhost:3001/api/notes/68a6255cc99d074b5c36573e/unshare \
+  -H "Content-Type: application/json" \
+  -d '{
+    "emails": ["user1@example.com"],
+    "userId": "68a6255cc99d074b5c36573d"
+  }'
+```
+
+---
+
+## 🔍 HEALTH CHECK APIs
+
+### SERVER HEALTH
+**Purpose**: Check if server is running
+**Method**: GET
+**Endpoint**: `/health`
+
+```bash
+curl -X GET http://localhost:3001/health
+```
+
+### API INFO
+**Purpose**: Get API version and information
+**Method**: GET
+**Endpoint**: `/`
+
+```bash
+curl -X GET http://localhost:3001/
+```
+
+---
+
+## 📊 API SUMMARY
+
+### User APIs (8 endpoints):
+- POST /api/users (Create)
+- POST /api/users/login (Login + JWT)
+- GET /api/users (Get All)
+- GET /api/users/:id (Get by ID)
+- GET /api/users/email/:email (Get by Email)
+- GET /api/users/username/:username (Get by Username)
+- PUT /api/users/:id (Update)
+- DELETE /api/users/:id (Delete)
+
+### Notes APIs (9 endpoints):
+- POST /api/notes (Create)
+- GET /api/notes/user/:userId (Get User's Notes)
+- GET /api/notes/all (Get All - Admin)
+- GET /api/notes/:id (Get by ID)
+- PUT /api/notes/:id (Update)
+- DELETE /api/notes/:id (Delete)
+- GET /api/notes/search (Search/Filter)
+- POST /api/notes/:id/share (Share)
+- POST /api/notes/:id/unshare (Unshare)
+
+### Health APIs (2 endpoints):
+- GET /health (Health Check)
+- GET / (API Info)
+
+**Total: 19 API endpoints**
+
+---
+
+## 🔧 Technical Features
+
+### Security:
+- ✅ Password hashing with bcrypt (salt rounds: 12)
+- ✅ JWT token authentication (24h expiry)
+- ✅ Input validation and sanitization
+- ✅ CORS configuration
+- ✅ Error handling middleware
+
+### Database:
+- ✅ MongoDB Atlas connection
+- ✅ Mongoose ODM with schema validation
+- ✅ ObjectId references between collections
+- ✅ Text indexes for search functionality
+- ✅ Automatic timestamp management
+
+### API Features:
+- ✅ Standardized JSON responses
+- ✅ Pagination support
+- ✅ Full-text search capabilities
+- ✅ Access control and permissions
+- ✅ Partial update support
+- ✅ Population of referenced documents
+
+---
+
+## 📝 Notes:
+
+1. Replace `68a6255cc99d074b5c36573d` with actual MongoDB ObjectIds from your database
+2. Replace `68a6255cc99d074b5c36573e` with actual note IDs from your database
+3. All API responses follow the format: `{ success: boolean, message: string, data: any }`
+4. Password fields are automatically excluded from GET responses
+5. Only note creators can update, delete, share, or unshare notes
+6. Users can only see notes they created or notes shared with them
+7. Search is case-insensitive and searches both title and note content
+8. JWT tokens expire after 24 hours and need to be refreshed
