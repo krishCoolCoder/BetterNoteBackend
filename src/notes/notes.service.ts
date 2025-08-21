@@ -76,9 +76,21 @@ export class NotesService {
   }
 
   // Get all notes (admin function)
-  async getAllNotes(): Promise<INote[]> {
+  async getAllNotes(searchQuery?: string): Promise<INote[]> {
     try {
-      const notes = await Note.find({})
+      let query: any = {};
+
+      // Add search filter if search query provided
+      if (searchQuery && searchQuery.trim()) {
+        query = {
+          $or: [
+            { title: { $regex: searchQuery.trim(), $options: 'i' } },
+            { note: { $regex: searchQuery.trim(), $options: 'i' } }
+          ]
+        };
+      }
+
+      const notes = await Note.find(query)
         .populate('createdBy', 'userName emailId')
         .populate('updatedBy', 'userName emailId')
         .sort({ updatedAt: -1 });

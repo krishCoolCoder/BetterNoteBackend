@@ -219,12 +219,23 @@ curl -X GET http://localhost:3001/api/notes/user/68a6255cc99d074b5c36573d
 ```
 
 ### 3. GET ALL NOTES (ADMIN)
-**Purpose**: Retrieve all notes in the system (admin function)
+**Purpose**: Retrieve all notes in the system (admin function) with optional search
 **Method**: GET
 **Endpoint**: `/api/notes/all`
+**Features**: 
+- Optional search parameter to filter by title and note content
+- Case-insensitive search
+- Returns all notes if no search parameter provided
 
 ```bash
+# Get all notes
 curl -X GET http://localhost:3001/api/notes/all
+
+# Search all notes by title and content
+curl -X GET "http://localhost:3001/api/notes/all?search=javascript"
+
+# Search all notes with specific term
+curl -X GET "http://localhost:3001/api/notes/all?search=tutorial"
 ```
 
 ### 4. GET NOTE BY ID

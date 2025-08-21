@@ -72,13 +72,15 @@ export class NotesController {
   // Get all notes (admin function)
   async getAllNotes(req: Request, res: Response): Promise<void> {
     try {
-      const notes = await notesService.getAllNotes();
+      const { search } = req.query;
+      const notes = await notesService.getAllNotes(search ? search as string : undefined);
 
       res.status(200).json({
         success: true,
-        message: 'All notes retrieved successfully',
+        message: search ? 'Filtered notes retrieved successfully' : 'All notes retrieved successfully',
         data: notes,
-        count: notes.length
+        count: notes.length,
+        ...(search && { searchQuery: search })
       });
     } catch (error: any) {
       console.error('Error fetching all notes:', error);
