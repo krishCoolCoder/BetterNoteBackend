@@ -34,7 +34,8 @@ The below json is used to map the  bullet point nodes above with their parent ti
   ]
 Once done just return result in edges 
 The above is just for example, you can have more or less nodes and edges based on the input. and note that there can be multiple titles and multiple nodes. there can be multiple parent titles and multiple bullet points that can be listed one after another like one below another.
-Just return both the nodes and edges as properties like : {nodes : [...], edges : [...]}. Ensure the response is in json format that is properly mapped with the parent title and bullet points. Double check if the response is in json format following {nodes : [...], edges : [...]}`
+Just return both the nodes and edges as properties like : {nodes : [...], edges : [...]}. Ensure the response is in json format that is properly mapped with the parent title and bullet points. Double check if the response is in json format following {nodes : [...], edges : [...]}
+Finally just check if the response in this format {nodes : [...], edges : [...]}, if not just return it in {nodes : [...], edges : [...]}`
          },
         { role: "user", content: input },
       ],
