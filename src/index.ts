@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import connectDB from './mongodbConfig.js';
 import userRoutes from './users/users.route.js';
 import notesRoutes from './notes/notes.route.js';
+import nodesRoutes from './nodes/nodes.route.js';
 import aiRoutes from './ai/ai.route.js';
 
 // Load environment variables
@@ -35,6 +36,7 @@ connectDB();
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/notes', notesRoutes);
+app.use('/api/nodes', nodesRoutes);
 app.use('/api/ai', aiRoutes);
 
 // Health check endpoint
