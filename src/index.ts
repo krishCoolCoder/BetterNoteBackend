@@ -6,6 +6,7 @@ import userRoutes from './users/users.route.js';
 import notesRoutes from './notes/notes.route.js';
 import nodesRoutes from './nodes/nodes.route.js';
 import aiRoutes from './ai/ai.route.js';
+import userProfileRoutes from './userProfiles/userProfile.route.js';
 
 // Load environment variables
 dotenv.config();
@@ -38,6 +39,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/nodes', nodesRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/userProfiles', userProfileRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

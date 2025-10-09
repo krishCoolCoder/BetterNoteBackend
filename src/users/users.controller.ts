@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import userService, { CreateUserInput, UpdateUserInput } from './users.service';
+import userProfileService from '../userProfiles/userProfile.service';
 
 export class UserController {
   // Create a new user
@@ -35,6 +36,20 @@ export class UserController {
       };
 
       const newUser = await userService.createUser(userData);
+
+      // Create user profile with default values
+      try {
+        await userProfileService.createUserProfile({
+          userRefId: newUser._id.toString(),
+          allowAnonymousView: false,
+          showOnlySharedNotes: true,
+          createdBy: newUser.userName
+        });
+        console.log('✅ User profile created successfully for user:', newUser.userName);
+      } catch (profileError: any) {
+        console.error('⚠️ Warning: Failed to create user profile:', profileError.message);
+        // Continue even if profile creation fails - user is already created
+      }
 
       res.status(201).json({
         success: true,
