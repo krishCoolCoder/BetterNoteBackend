@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import userProfileService, { CreateUserProfileInput, UpdateUserProfileInput } from './userProfile.service';
+const { uploadToS3, validateImageFile, deleteFromS3, getPresignedUrl } = require('../../utils/s3Upload');
 
 export class UserProfileController {
   // Create a new user profile
@@ -91,6 +92,7 @@ export class UserProfileController {
     try {
       const { id } = req.params;
 
+      // const profile = await userProfileService.getUserProfileById(id);
       const profile = await userProfileService.getUserProfileById(id);
 
       if (!profile) {
@@ -301,6 +303,208 @@ export class UserProfileController {
       });
     } catch (error: any) {
       console.error('Error deleting user profile by user reference ID:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Internal server error'
+      });
+    }
+  }
+
+  // Upload profile image to S3 and update userProfile
+  async uploadProfileImage(req: Request, res: Response): Promise<void> {
+    try {
+      const { userRefId } = req.body;
+
+      // Validation
+      if (!userRefId) {
+        res.status(400).json({
+          success: false,
+          message: 'User reference ID is required'
+        });
+        return;
+      }
+
+      // Check if file was uploaded
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: 'No file uploaded. Please upload an image file'
+        });
+        return;
+      }
+
+      // Validate image file
+      try {
+        validateImageFile(req.file);
+      } catch (validationError: any) {
+        res.status(400).json({
+          success: false,
+          message: validationError.message
+        });
+        return;
+      }
+
+      // Check if user profile exists
+      const existingProfile = await userProfileService.getUserProfileByUserId(userRefId);
+      if (!existingProfile) {
+        res.status(404).json({
+          success: false,
+          message: 'User profile not found for this user'
+        });
+        return;
+      }
+
+      // Delete old profile image from S3 if it exists
+      if (existingProfile.userProfile && existingProfile.userProfile.startsWith('http')) {
+        try {
+          await deleteFromS3(existingProfile.userProfile);
+          console.log('🗑️  Old profile image deleted');
+        } catch (deleteError) {
+          console.error('⚠️  Warning: Failed to delete old profile image:', deleteError);
+          // Continue with upload even if deletion fails
+        }
+      }
+
+      // Upload new image to S3
+      const imageUrl = await uploadToS3(req.file, 'userProfiles');
+
+      // Update user profile with new image URL
+      const updatedProfile = await userProfileService.updateUserProfileByUserRefId(
+        userRefId,
+        {
+          userProfile: imageUrl,
+          updatedBy: req.body.updatedBy || 'system'
+        }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Profile image uploaded successfully',
+        data: {
+          imageUrl: imageUrl,
+          profile: updatedProfile
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Error uploading profile image:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Internal server error'
+      });
+    }
+  }
+
+  // Get presigned URL for profile image
+  async getProfileImageUrl(req: Request, res: Response): Promise<void> {
+    try {
+      const { userRefId } = req.params;
+      const { expiresIn } = req.query; // Optional: expiration time in seconds
+
+      // Validation
+      if (!userRefId) {
+        res.status(400).json({
+          success: false,
+          message: 'User reference ID is required'
+        });
+        return;
+      }
+
+      // Get user profile
+      const profile = await userProfileService.getUserProfileByUserRefId(userRefId);
+      
+      if (!profile) {
+        res.status(404).json({
+          success: false,
+          message: 'User profile not found'
+        });
+        return;
+      }
+
+      // Check if profile has an image
+      if (!profile.userProfile || !profile.userProfile.startsWith('http')) {
+        res.status(404).json({
+          success: false,
+          message: 'No profile image found for this user'
+        });
+        return;
+      }
+
+      // Generate presigned URL
+      const expirationTime = expiresIn ? parseInt(expiresIn as string) : 3600; // Default 1 hour
+      const presignedUrl = await getPresignedUrl(profile.userProfile, expirationTime);
+
+      res.status(200).json({
+        success: true,
+        message: 'Presigned URL generated successfully',
+        data: {
+          presignedUrl: presignedUrl,
+          expiresIn: expirationTime,
+          expiresAt: new Date(Date.now() + expirationTime * 1000).toISOString()
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Error generating presigned URL:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Internal server error'
+      });
+    }
+  }
+
+  // Get presigned URL for profile image by profile ID
+  async getProfileImageUrlById(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { expiresIn } = req.query; // Optional: expiration time in seconds
+
+      // Validation
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: 'Profile ID is required'
+        });
+        return;
+      }
+
+      // Get user profile by profile ID
+      const profile = await userProfileService.getUserProfileById(id);
+      
+      if (!profile) {
+        res.status(404).json({
+          success: false,
+          message: 'User profile not found'
+        });
+        return;
+      }
+
+      // Check if profile has an image
+      if (!profile.userProfile || !profile.userProfile.startsWith('http')) {
+        res.status(404).json({
+          success: false,
+          message: 'No profile image found for this profile'
+        });
+        return;
+      }
+
+      // Generate presigned URL
+      const expirationTime = expiresIn ? parseInt(expiresIn as string) : 3600; // Default 1 hour
+      const presignedUrl = await getPresignedUrl(profile.userProfile, expirationTime);
+
+      res.status(200).json({
+        success: true,
+        message: 'Presigned URL generated successfully',
+        data: {
+          presignedUrl: presignedUrl,
+          expiresIn: expirationTime,
+          expiresAt: new Date(Date.now() + expirationTime * 1000).toISOString(),
+          profileId: profile._id
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Error generating presigned URL by profile ID:', error);
       res.status(500).json({
         success: false,
         message: error.message || 'Internal server error'

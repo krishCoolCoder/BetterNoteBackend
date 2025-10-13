@@ -85,7 +85,19 @@ export class UserProfileService {
         throw new Error('Invalid user reference ID format');
       }
 
-      const profile = await UserProfile.findOne({ userRefId }).populate('userRefId', 'userName emailId');
+      const profile = await UserProfile.findOne({ userRefId: new mongoose.Types.ObjectId(userRefId) }).populate('userRefId', 'userName emailId');
+      return profile;
+    } catch (error) {
+      throw error;
+    }
+  }
+  async getUserProfileByUserId(userRefId: string): Promise<IUserProfile | null> {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(userRefId)) {
+        throw new Error('Invalid user reference ID format');
+      }
+
+      const profile = await UserProfile.findOne({ _id: new mongoose.Types.ObjectId(userRefId) }).populate('userRefId', 'userName emailId');
       return profile;
     } catch (error) {
       throw error;
@@ -131,7 +143,7 @@ export class UserProfileService {
       };
 
       const profile = await UserProfile.findOneAndUpdate(
-        { userRefId },
+        { _id : new mongoose.Types.ObjectId(userRefId) },
         updatePayload,
         { new: true, runValidators: true }
       ).populate('userRefId', 'userName emailId');
