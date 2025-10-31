@@ -1,5 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './mongodbConfig.js';
 import userRoutes from './users/users.route.js';
@@ -12,24 +13,22 @@ import userProfileRoutes from './userProfiles/userProfile.route.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // Middleware
+// CORS configuration - Allow all origins and methods
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-Access-Token'],
+  exposedHeaders: ['Content-Length', 'X-JSON'],
+  credentials: false,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// CORS middleware
-app.use((req, res, next) => {
-  const allowedOrigins = process.env.CORS_ORIGIN || '*';
-  res.header('Access-Control-Allow-Origin', allowedOrigins);
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
 
 // Database connection
 connectDB();
@@ -62,10 +61,11 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`📍 Listening on: 0.0.0.0:${PORT} (accessible from all network interfaces)`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || '*'}`);
+  console.log(`🌐 CORS: Enabled for ALL origins (no CORS errors)`);
 });
 
 export default app;
