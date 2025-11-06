@@ -143,7 +143,7 @@ export class UserProfileService {
       };
 
       const profile = await UserProfile.findOneAndUpdate(
-        { _id : new mongoose.Types.ObjectId(userRefId) },
+        { userRefId: new mongoose.Types.ObjectId(userRefId) },
         updatePayload,
         { new: true, runValidators: true }
       ).populate('userRefId', 'userName emailId');

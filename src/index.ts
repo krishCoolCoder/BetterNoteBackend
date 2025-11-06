@@ -50,15 +50,31 @@ app.get('/', (req, res) => {
   res.status(200).json({ message: 'BetterNote Backend API', version: '1.0.0' });
 });
 
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
-
-// 404 handler
+// 404 handler (must be before error handler)
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
+});
+
+// Error handling middleware (must be LAST)
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction): void => {
+  // Handle JSON parsing errors
+  if (err instanceof SyntaxError && 'body' in err) {
+    res.status(400).json({
+      success: false,
+      error: 'Invalid JSON',
+      message: err.message,
+      details: 'Please check your JSON format'
+    });
+    return;
+  }
+  
+  // Handle other errors
+  console.error(err.stack);
+  res.status(500).json({ 
+    success: false,
+    error: 'Something went wrong!',
+    message: err.message || 'Internal server error'
+  });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
