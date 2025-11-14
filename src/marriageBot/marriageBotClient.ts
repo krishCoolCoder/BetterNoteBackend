@@ -20,7 +20,7 @@ export async function callMarriageBotAI(userMessage: string): Promise<string> {
           2. The reception is on January 27.
           3. Only vegetarian food will be served.
           4. No transport is provided for guests.
-          5. The groom’s name is Srikrishna and the bride’s name is Saranya.
+          5. The groom’s name is Saikrishna and the bride’s name is Saranya.
           6. The marriage ceremony timing is from 6:00 AM to 7:30 AM.
           
           Guidelines for your replies:
