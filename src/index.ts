@@ -8,6 +8,7 @@ import notesRoutes from './notes/notes.route.js';
 import nodesRoutes from './nodes/nodes.route.js';
 import aiRoutes from './ai/ai.route.js';
 import userProfileRoutes from './userProfiles/userProfile.route.js';
+import marriageBotRoutes from './marriageBot/marriageBot.route.js';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +40,7 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/nodes', nodesRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/userProfiles', userProfileRoutes);
+app.use('/api/marriageBot', marriageBotRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
