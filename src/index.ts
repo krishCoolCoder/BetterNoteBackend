@@ -9,6 +9,8 @@ import nodesRoutes from './nodes/nodes.route.js';
 import aiRoutes from './ai/ai.route.js';
 import userProfileRoutes from './userProfiles/userProfile.route.js';
 import marriageBotRoutes from './marriageBot/marriageBot.route.js';
+import auditRoutes from './audit/audit.route.js';
+import { auditMiddleware } from './audit/audit.middleware.js';
 
 // Load environment variables
 dotenv.config();
@@ -31,6 +33,9 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Audit middleware - Captures all API requests and responses
+app.use(auditMiddleware);
+
 // Database connection
 connectDB();
 
@@ -41,6 +46,7 @@ app.use('/api/nodes', nodesRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/userProfiles', userProfileRoutes);
 app.use('/api/marriageBot', marriageBotRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
