@@ -24,6 +24,16 @@ export class MarriageBotController {
         return;
       }
 
+      // Character limit validation - 150 characters max
+      if (messages.length > 150) {
+        res.status(400).json({
+          success: false,
+          message: 'messages field cannot exceed 150 characters',
+          details: `Current length: ${messages.length} characters. Maximum allowed: 150 characters.`
+        });
+        return;
+      }
+
       // Check if OpenAI API key is configured
       if (!process.env.OPENAI_API_KEY) {
         res.status(500).json({

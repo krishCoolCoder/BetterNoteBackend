@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import connectDB from './mongodbConfig.js';
 import userRoutes from './users/users.route.js';
@@ -17,6 +18,28 @@ dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
+
+// Trust proxy - Required for rate limiting behind reverse proxy/load balancer
+app.set('trust proxy', 1);
+
+// Rate limiting: 6 requests per minute per IP
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 6, // Limit each IP to 6 requests per windowMs
+  message: 'Too many requests, please try again later.',
+  handler: (req, res) => {
+    res.status(429).json({ 
+      success: false,
+      error: 'Too many requests, please try again later.',
+      message: 'Rate limit exceeded. Maximum 6 requests per minute allowed.'
+    });
+  },
+  // Skip rate limiting for health check
+  skip: (req) => req.path === '/health' || req.path === '/'
+});
+
+// Apply rate limiting to all requests
+app.use(limiter);
 
 // Middleware
 // CORS configuration - Allow all origins and methods
@@ -90,6 +113,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📍 Listening on: 0.0.0.0:${PORT} (accessible from all network interfaces)`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 CORS: Enabled for ALL origins (no CORS errors)`);
+  console.log(`⏱️  Rate Limiting: 6 requests per minute per IP`);
+  console.log(`📊 Audit Logging: Enabled (all API calls logged to database)`);
 });
 
 export default app;
