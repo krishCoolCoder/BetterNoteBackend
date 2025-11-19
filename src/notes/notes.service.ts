@@ -30,12 +30,14 @@ export class NotesService {
         throw new Error('Invalid createdBy user ID format');
       }
 
+      const userObjectId = new mongoose.Types.ObjectId(noteData.createdBy);
+
       const note = new Note({
         title: noteData.title,
         note: noteData.note,
         sharedTo: noteData.sharedTo || [],
-        createdBy: noteData.createdBy,
-        updatedBy: noteData.createdBy // Initially same as createdBy
+        createdBy: userObjectId,
+        updatedBy: userObjectId // Initially same as createdBy
       });
 
       const savedNote = await note.save();
@@ -54,14 +56,20 @@ export class NotesService {
 
       // Get user's email to check shared notes
       const User = mongoose.model('User');
-      const user = await User.findById(userId);
+      const userObjectId = new mongoose.Types.ObjectId(userId);
+      const user = await User.findById(userObjectId);
       if (!user) {
         throw new Error('User not found');
       }
-
+console.log("The query is this : ", {
+  $or: [
+    { createdBy: userObjectId },
+    { sharedTo: { $in: [user.emailId] } }
+  ]
+})
       const notes = await Note.find({
         $or: [
-          { createdBy: userId },
+          { createdBy: userObjectId },
           { sharedTo: { $in: [user.emailId] } }
         ]
       })
@@ -117,7 +125,8 @@ export class NotesService {
         }
 
         const User = mongoose.model('User');
-        const user = await User.findById(userId);
+        const userObjectId = new mongoose.Types.ObjectId(userId);
+        const user = await User.findById(userObjectId);
         if (!user) {
           throw new Error('User not found');
         }
@@ -125,7 +134,7 @@ export class NotesService {
         query = {
           _id: noteId,
           $or: [
-            { createdBy: userId },
+            { createdBy: userObjectId },
             { sharedTo: { $in: [user.emailId] } }
           ]
         };
@@ -152,17 +161,19 @@ export class NotesService {
         throw new Error('Invalid user ID format');
       }
 
+      const userObjectId = new mongoose.Types.ObjectId(userId);
+
       // Check if user has permission to update (only creator can update)
-      const existingNote = await Note.findOne({ _id: noteId, createdBy: userId });
+      const existingNote = await Note.findOne({ _id: noteId, createdBy: userObjectId });
       if (!existingNote) {
         throw new Error('Note not found or user does not have permission to update');
       }
 
       const updatedNote = await Note.findOneAndUpdate(
-        { _id: noteId, createdBy: userId },
+        { _id: noteId, createdBy: userObjectId },
         {
           ...updateData,
-          updatedBy: userId,
+          updatedBy: userObjectId,
           updatedAt: new Date()
         },
         { new: true, runValidators: true }
@@ -187,8 +198,10 @@ export class NotesService {
         throw new Error('Invalid user ID format');
       }
 
+      const userObjectId = new mongoose.Types.ObjectId(userId);
+
       // Only creator can delete the note
-      const deletedNote = await Note.findOneAndDelete({ _id: noteId, createdBy: userId });
+      const deletedNote = await Note.findOneAndDelete({ _id: noteId, createdBy: userObjectId });
       return deletedNote;
     } catch (error) {
       throw error;
@@ -210,13 +223,14 @@ export class NotesService {
         }
 
         const User = mongoose.model('User');
-        const user = await User.findById(userId);
+        const userObjectId = new mongoose.Types.ObjectId(userId);
+        const user = await User.findById(userObjectId);
         if (!user) {
           throw new Error('User not found');
         }
 
         searchQuery.$or = [
-          { createdBy: userId },
+          { createdBy: userObjectId },
           { sharedTo: { $in: [user.emailId] } }
         ];
       }
@@ -276,12 +290,14 @@ export class NotesService {
         throw new Error('Invalid user ID format');
       }
 
+      const userObjectId = new mongoose.Types.ObjectId(userId);
+
       // Only creator can share the note
       const updatedNote = await Note.findOneAndUpdate(
-        { _id: noteId, createdBy: userId },
+        { _id: noteId, createdBy: userObjectId },
         {
           $addToSet: { sharedTo: { $each: emails } },
-          updatedBy: userId,
+          updatedBy: userObjectId,
           updatedAt: new Date()
         },
         { new: true, runValidators: true }
@@ -306,12 +322,14 @@ export class NotesService {
         throw new Error('Invalid user ID format');
       }
 
+      const userObjectId = new mongoose.Types.ObjectId(userId);
+
       // Only creator can unshare the note
       const updatedNote = await Note.findOneAndUpdate(
-        { _id: noteId, createdBy: userId },
+        { _id: noteId, createdBy: userObjectId },
         {
           $pull: { sharedTo: { $in: emails } },
-          updatedBy: userId,
+          updatedBy: userObjectId,
           updatedAt: new Date()
         },
         { new: true, runValidators: true }

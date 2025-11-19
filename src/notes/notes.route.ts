@@ -17,7 +17,7 @@ router.get('/search', notesController.searchNotes.bind(notesController));
 router.get('/all', notesController.getAllNotes.bind(notesController));
 
 // Get notes for authenticated user
-router.get('/user', notesController.getNotesForUser.bind(notesController));
+router.get('/user/:userId', notesController.getNotesForUser.bind(notesController));
 
 // Get note by ID (for authenticated user only)
 router.get('/:id', notesController.getNoteById.bind(notesController));
