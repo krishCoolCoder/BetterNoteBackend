@@ -233,7 +233,7 @@ export class UserController {
         userName: user.userName
       };
 
-      const token = jwt.sign(payload, jwtSecret, { expiresIn: '24h' });
+      const token = jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
 
       res.status(200).json({
         success: true,
@@ -241,7 +241,7 @@ export class UserController {
         data: {
           user: user,
           token: token,
-          expiresIn: '24h'
+          expiresIn: '1h'
         }
       });
     } catch (error: any) {

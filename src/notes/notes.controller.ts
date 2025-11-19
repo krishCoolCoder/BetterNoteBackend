@@ -5,13 +5,24 @@ export class NotesController {
   // Create a new note
   async createNote(req: Request, res: Response): Promise<void> {
     try {
-      const { title, note, sharedTo, createdBy } = req.body;
+      const { title, note, sharedTo } = req.body;
+
+      // Get userId from currentUser header (set by auth middleware)
+      const createdBy = req.headers['currentuser'] as string;
 
       // Validation
-      if (!title || !note || !createdBy) {
+      if (!title || !note) {
         res.status(400).json({
           success: false,
-          message: 'Title, note content, and createdBy are required'
+          message: 'Title and note content are required'
+        });
+        return;
+      }
+
+      if (!createdBy) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
         });
         return;
       }
@@ -39,15 +50,16 @@ export class NotesController {
     }
   }
 
-  // Get all notes for a user
+  // Get all notes for authenticated user
   async getNotesForUser(req: Request, res: Response): Promise<void> {
     try {
-      const { userId } = req.params;
+      // Get userId from currentUser header (set by auth middleware)
+      const userId = req.headers['currentuser'] as string;
 
       if (!userId) {
-        res.status(400).json({
+        res.status(401).json({
           success: false,
-          message: 'User ID is required'
+          message: 'User not authenticated'
         });
         return;
       }
@@ -72,14 +84,34 @@ export class NotesController {
   // Get all notes (admin function)
   async getAllNotes(req: Request, res: Response): Promise<void> {
     try {
+      // Get userId from currentUser header (set by auth middleware)
+      const userId = req.headers['currentuser'] as string;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+
       const { search } = req.query;
-      const notes = await notesService.getAllNotes(search ? search as string : undefined);
+      // Get only notes created by the authenticated user
+      const notes = await notesService.getAllNotesForUser(userId);
+      
+      // Apply search filter if provided
+      const filteredNotes = search 
+        ? notes.filter((note: any) => 
+            note.title.toLowerCase().includes((search as string).toLowerCase()) ||
+            note.note.toLowerCase().includes((search as string).toLowerCase())
+          )
+        : notes;
 
       res.status(200).json({
         success: true,
         message: search ? 'Filtered notes retrieved successfully' : 'All notes retrieved successfully',
-        data: notes,
-        count: notes.length,
+        data: filteredNotes,
+        count: filteredNotes.length,
         ...(search && { searchQuery: search })
       });
     } catch (error: any) {
@@ -94,10 +126,20 @@ export class NotesController {
   // Get note by ID
   async getNoteById(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const { userId } = req.query;
+      // Get userId from currentUser header (set by auth middleware)
+      const userId = req.headers['currentuser'] as string;
 
-      const note = await notesService.getNoteById(id, userId as string);
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+
+      const { id } = req.params;
+
+      const note = await notesService.getNoteById(id, userId);
 
       if (!note) {
         res.status(404).json({
@@ -124,26 +166,29 @@ export class NotesController {
   // Update note
   async updateNote(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const { title, note, sharedTo, updatedBy } = req.body;
+      // Get userId from currentUser header (set by auth middleware)
+      const userId = req.headers['currentuser'] as string;
 
-      if (!updatedBy) {
-        res.status(400).json({
+      if (!userId) {
+        res.status(401).json({
           success: false,
-          message: 'updatedBy user ID is required'
+          message: 'User not authenticated'
         });
         return;
       }
 
+      const { id } = req.params;
+      const { title, note, sharedTo } = req.body;
+
       const updateData: UpdateNoteInput = {
-        updatedBy
+        updatedBy: userId
       };
 
       if (title) updateData.title = title;
       if (note) updateData.note = note;
       if (sharedTo !== undefined) updateData.sharedTo = sharedTo;
 
-      const updatedNote = await notesService.updateNote(id, updateData, updatedBy);
+      const updatedNote = await notesService.updateNote(id, updateData, userId);
 
       if (!updatedNote) {
         res.status(404).json({
@@ -170,16 +215,18 @@ export class NotesController {
   // Delete note
   async deleteNote(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const { userId } = req.body;
+      // Get userId from currentUser header (set by auth middleware)
+      const userId = req.headers['currentuser'] as string;
 
       if (!userId) {
-        res.status(400).json({
+        res.status(401).json({
           success: false,
-          message: 'User ID is required'
+          message: 'User not authenticated'
         });
         return;
       }
+
+      const { id } = req.params;
 
       const deletedNote = await notesService.deleteNote(id, userId);
 
@@ -211,12 +258,24 @@ export class NotesController {
   // Search/Filter notes
   async searchNotes(req: Request, res: Response): Promise<void> {
     try {
-      const { query, userId, page, limit } = req.query;
+      // Get userId from currentUser header (set by auth middleware)
+      const userId = req.headers['currentuser'] as string;
 
-      const searchParams: SearchNotesInput = {};
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+
+      const { query, page, limit } = req.query;
+
+      const searchParams: SearchNotesInput = {
+        userId // Always filter by authenticated user
+      };
 
       if (query) searchParams.query = query as string;
-      if (userId) searchParams.userId = userId as string;
       if (page) searchParams.page = parseInt(page as string);
       if (limit) searchParams.limit = parseInt(limit as string);
 
@@ -245,21 +304,24 @@ export class NotesController {
   // Share note
   async shareNote(req: Request, res: Response): Promise<void> {
     try {
+      // Get userId from currentUser header (set by auth middleware)
+      const userId = req.headers['currentuser'] as string;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+
       const { id } = req.params;
-      const { emails, userId } = req.body;
+      const { emails } = req.body;
 
       if (!emails || !Array.isArray(emails) || emails.length === 0) {
         res.status(400).json({
           success: false,
           message: 'Emails array is required and must not be empty'
-        });
-        return;
-      }
-
-      if (!userId) {
-        res.status(400).json({
-          success: false,
-          message: 'User ID is required'
         });
         return;
       }
@@ -291,21 +353,24 @@ export class NotesController {
   // Unshare note
   async unshareNote(req: Request, res: Response): Promise<void> {
     try {
+      // Get userId from currentUser header (set by auth middleware)
+      const userId = req.headers['currentuser'] as string;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+
       const { id } = req.params;
-      const { emails, userId } = req.body;
+      const { emails } = req.body;
 
       if (!emails || !Array.isArray(emails) || emails.length === 0) {
         res.status(400).json({
           success: false,
           message: 'Emails array is required and must not be empty'
-        });
-        return;
-      }
-
-      if (!userId) {
-        res.status(400).json({
-          success: false,
-          message: 'User ID is required'
         });
         return;
       }
